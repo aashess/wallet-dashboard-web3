@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solana Wallet Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Solana Web3.js -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <!-- Custom Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+      const { Connection, PublicKey, LAMPORTS_PER_SOL, clusterApiUrl } =
+        solanaWeb3;
+
+      // Main Application Component
+      function App() {
+        // State variables to hold wallet data, input, loading status, and errors
+        const [walletAddress, setWalletAddress] = useState("");
+        const [visual,setvisual]=useState("")
+        console.log("🚀 ~ App ~ visual:", visual)
+        console.log(walletAddress);
+        const [balance, setBalance] = useState(1);
+
+        const [transactions, setTransactions] = useState(["ffas"]);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState(null);
+        const [searchedAddress, setSearchedAddress] = useState("");
+
+        // Establish connection to Solana mainnet
+        const connection = new Connection(
+          clusterApiUrl("mainnet-beta"),
+          "confirmed"
+        );
+
+        // Function to handle the search logic
+        const handleSearch = async (e) => {
+          // Clear previous data and start loading
+
+          setTransactions([]);
+          setError(null);
+          if (!walletAddress) {
+            setError("Please enter a wallet address.");
+            return;
+          }
+          setLoading(true);
+          setSearchedAddress(walletAddress);
+
+          try {
+            // Validate the public key
+            const publicKey = new PublicKey(walletAddress);
+
+            // Fetch balance
+            const balanceInLamports = await connection.getBalance(publicKey);
+            setBalance(balanceInLamports / LAMPORTS_PER_SOL);
+
+            // Fetch transaction signatures
+            const signatures = await connection.getSignaturesForAddress(
+              publicKey,
+              { limit: 15 }
+            );
+            setTransactions(signatures);
+          } catch (err) {
+            // Handle errors (e.g., invalid address)
+            console.error(err);
+            setError(
+              "Invalid wallet address or failed to fetch data. Please check the address and try again."
+            );
+            setBalance(null);
+            setTransactions([]);
+          } finally {
+            // Stop loading
+            setLoading(false);
+          }
+        };
+
+        // Function to handle key press for search
+        const handleKeyPress = (event) => {
+          if (event.key === "Enter") {
+            handleSearch();
+          }
+        };
+
+        const onclickHandleFun = async () => {
+          const response = await axios.post("http://localhost:3001/api", {
+            walletAddress,
+          });
+          console.log(response);
+          setvisual(response.data.result.value)
+        };
+
+        return (
+          <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-4 sm:p-6 lg:p-8">
+            <div className="w-full max-w-4xl">
+              {/* Header Section */}
+              <header className="text-center mb-8">
+                <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                  Solana Wallet Explorer
+                </h1>
+                <p className="text-gray-400 mt-2">
+                  Enter a Solana wallet address to view its balance and
+                  transaction history.
+                </p>
+              </header>
+
+              {/* Search Bar Section */}
+              <div className="flex flex-col sm:flex-row gap-2 mb-8">
+                <input
+                  type="text"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Enter Solana Wallet Address"
+                  className="flex-grow bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200"
+                />
+                <button
+                  onClick={onclickHandleFun}
+                  disabled={loading}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 disabled:bg-gray-500 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {loading ? (
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  ) : (
+                    "Searcfasdfh"
+                  )}
+                </button>
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-6 text-center">
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* Results Section */}
+              <div className="space-y-8">
+                {/* Balance Display */}
+                {balance !== null && (
+                  <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h2 className="text-2xl font-semibold mb-4 text-purple-300">
+                      Wallet Balance
+                    </h2>
+
+                    <p className="text-sm text-gray-500 mt-2 truncate">
+                      Address: {visual}
+                    </p>
+                  </div>
+                )}
+
+                {/* Transactions Display */}
+                {transactions.length > 0 && (
+                  <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <h2 className="text-2xl font-semibold mb-4 text-pink-300">
+                      Recent Transactions
+                    </h2>
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                      {transactions.map((tx, index) => (
+                        <div
+                          key={index}
+                          className="bg-gray-800 p-4 rounded-lg flex justify-between items-center hover:bg-gray-700/50 transition duration-200"
+                        >
+                          <div>
+                            <p className="font-mono text-sm text-gray-300 truncate w-48 sm:w-auto">
+                              {tx.signature}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(tx.blockTime * 1000).toLocaleString()}
+                            </p>
+                          </div>
+                          <a
+                            href={`https://solscan.io/tx/${tx.signature}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-400 hover:text-purple-300 text-sm font-medium"
+                          >
+                            View
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Placeholder when no search has been made */}
+              {!loading &&
+                !error &&
+                balance === null &&
+                transactions.length === 0 && (
+                  <div className="text-center text-gray-500 mt-16">
+                    <p>Search for a wallet to see the details hereeee.</p>
+                  </div>
+                )}
+            </div>
+          </div>
+        );
+      }
+
+      const container = document.getElementById("root");
+      const root = ReactDOM.createRoot(container);
+      root.render(<App />);
+    </script>
+  </body>
+</html>
